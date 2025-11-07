@@ -8,7 +8,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Users from "./pages/Users";
 import Attendance from "./pages/Attendance";
-import MarkAttendance from "./pages/MarkAttendance";
+
 import EmployeeMark from "./pages/EmployeeMark";
 
 function App() {
@@ -50,14 +50,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/mark"
-            element={
-              <ProtectedRoute>
-                <MarkAttendance />
-              </ProtectedRoute>
-            }
-          />
+
 
           {/* ✅ Catch-all (optional) */}
           <Route path="*" element={<Login />} />
