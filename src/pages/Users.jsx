@@ -11,12 +11,14 @@ const Users = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [deletingId, setDeletingId] = useState(null); // 🔹 Track user being deleted
+  const [deletingId, setDeletingId] = useState(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   // 🔹 Fetch all users
   const fetchUsers = async () => {
     try {
+      setLoading(true);
       const token = localStorage.getItem("token");
       if (!token) return navigate("/login");
 
@@ -31,6 +33,8 @@ const Users = () => {
       } else {
         toast.error(err.response?.data?.message || "Failed to fetch users");
       }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -60,7 +64,7 @@ const Users = () => {
     }
   };
 
-  // 🔹 Direct delete by ID (with spinner)
+  // 🔹 Delete user
   const deleteUserById = async (id) => {
     try {
       setDeletingId(id);
@@ -77,13 +81,11 @@ const Users = () => {
     }
   };
 
-  // 🔹 Open modal before deleting
   const confirmDelete = (user) => {
     setSelectedUser(user);
     setShowDeleteModal(true);
   };
 
-  // 🔹 Delete confirmed user (modal)
   const deleteUser = async () => {
     if (!selectedUser) return;
     await deleteUserById(selectedUser._id);
@@ -96,89 +98,91 @@ const Users = () => {
   }, []);
 
   return (
-    <div style={{ padding: "20px" }}>
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <h2>Team Members</h2>
-        <Button variant="primary" onClick={() => setShowAddModal(true)}>
-          + Add User
-        </Button>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 p-4 sm:p-8">
+      <div className="max-w-5xl mx-auto bg-white/80 backdrop-blur-md rounded-3xl shadow-lg border border-indigo-100 p-5 sm:p-8 transition-all duration-300 hover:shadow-xl animate-fadeIn">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4 border-b border-indigo-100 pb-3">
+          <h2 className="text-2xl font-bold text-indigo-700 tracking-tight text-center sm:text-left">
+            Team Members
+          </h2>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="px-5 py-2.5 text-white font-semibold rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 hover:scale-[1.03] shadow-md transition-all duration-300"
+          >
+            + Add User
+          </button>
+        </div>
+
+        {/* Loading Skeleton */}
+        {loading ? (
+          <div className="space-y-3 mt-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-10 w-full bg-indigo-100 rounded shimmer"></div>
+            ))}
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-indigo-100">
+            <table className="min-w-full text-sm md:text-[15px] text-gray-700 border-collapse">
+              <thead className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white">
+                <tr>
+                  <th className="py-3 px-4 text-left font-semibold">Name</th>
+                  <th className="py-3 px-4 text-left font-semibold">Token Code</th>
+                  <th className="py-3 px-4 text-center font-semibold">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-indigo-50 bg-white">
+                {users.length > 0 ? (
+                  users.map((u) => (
+                    <tr
+                      key={u._id}
+                      className="hover:bg-indigo-50/70 transition-all duration-200"
+                    >
+                      <td className="py-3 px-4 font-medium text-gray-700 whitespace-nowrap">
+                        {u.name}
+                      </td>
+                      <td className="py-3 px-4 text-indigo-600 font-semibold whitespace-nowrap">
+                        {u.tokenCode}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <button
+                          onClick={() => confirmDelete(u)}
+                          disabled={deletingId === u._id}
+                          className={`px-4 py-1.5 rounded-lg font-medium text-white shadow-md transition-all duration-300 ${
+                            deletingId === u._id
+                              ? "bg-red-400 cursor-not-allowed"
+                              : "bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 hover:scale-[1.03]"
+                          }`}
+                        >
+                          {deletingId === u._id ? "Deleting..." : "Remove"}
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan="3"
+                      className="text-center py-8 text-gray-500 font-medium"
+                    >
+                      No team members yet
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
-      {/* 🔹 Users Table */}
-      <table className="table table-striped">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Token Code</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.length > 0 ? (
-            users.map((u) => (
-              <tr key={u._id}>
-                <td>{u.name}</td>
-                <td>{u.tokenCode}</td>
-                <td>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    disabled={deletingId === u._id}
-                    onClick={() => confirmDelete(u)}
-                  >
-                    {deletingId === u._id ? (
-                      <>
-                        <Spinner
-                          animation="border"
-                          size="sm"
-                          className="me-1"
-                        />
-                        Deleting...
-                      </>
-                    ) : (
-                      "Remove"
-                    )}
-                  </Button>
-
-                  {/* Optional: Quick Delete (no modal) */}
-                  {/* <Button
-                    variant="outline-danger"
-                    size="sm"
-                    disabled={deletingId === u._id}
-                    onClick={() => deleteUserById(u._id)}
-                    className="ms-2"
-                  >
-                    {deletingId === u._id ? (
-                      <>
-                        <Spinner animation="border" size="sm" className="me-1" />
-                        Deleting...
-                      </>
-                    ) : (
-                      "Quick Delete"
-                    )}
-                  </Button> */}
-                </td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan="3" className="text-center text-muted">
-                No team members yet
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-
-      {/* 🔹 Add User Modal */}
+      {/* Add User Modal */}
       <Modal show={showAddModal} onHide={() => setShowAddModal(false)} centered>
         <Modal.Header closeButton>
-          <Modal.Title>Add New User</Modal.Title>
+          <Modal.Title className="text-indigo-700">Add New User</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Form>
             <Form.Group className="mb-3">
-              <Form.Label>Name</Form.Label>
+              <Form.Label className="font-medium text-gray-700">Name</Form.Label>
               <Form.Control
                 type="text"
                 placeholder="Enter employee name"
@@ -187,7 +191,7 @@ const Users = () => {
               />
             </Form.Group>
             <Form.Group>
-              <Form.Label>Token Code</Form.Label>
+              <Form.Label className="font-medium text-gray-700">Token Code</Form.Label>
               <Form.Control
                 type="text"
                 placeholder="Enter token code (e.g. EMP1234)"
@@ -207,18 +211,14 @@ const Users = () => {
         </Modal.Footer>
       </Modal>
 
-      {/* 🔹 Delete Confirmation Modal */}
-      <Modal
-        show={showDeleteModal}
-        onHide={() => setShowDeleteModal(false)}
-        centered
-      >
+      {/* Delete Confirmation Modal */}
+      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
         <Modal.Header closeButton>
-          <Modal.Title>Confirm Delete</Modal.Title>
+          <Modal.Title className="text-red-600">Confirm Delete</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {selectedUser ? (
-            <p>
+            <p className="text-gray-700">
               Are you sure you want to remove{" "}
               <strong>{selectedUser.name}</strong> (
               <code>{selectedUser.tokenCode}</code>)?
@@ -242,8 +242,7 @@ const Users = () => {
           >
             {deletingId === selectedUser?._id ? (
               <>
-                <Spinner animation="border" size="sm" className="me-1" />
-                Deleting...
+                <Spinner animation="border" size="sm" className="me-1" /> Deleting...
               </>
             ) : (
               "Delete"
